@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.grove.tree.repository.board.BoardDao">
+
+	<sql id="boardWhere">
+		<where>
+		DEL_FL != 'Y'
+			<if test="search_type != null and search_type != ''">
+				<choose>
+					<when test="search_type == 'title'">
+					AND TITLE LIKE '%' || #{title} || '%'
+					</when>
+					<when test="search_type == 'contents'">
+					AND CONTENTS LIKE '%' || #{contents} || '%'
+					</when>
+				</choose>
+			</if>
+		</where>		
+	</sql>
+	
+	<select id="selectBoardListCount" parameterType="board" resultType="int">
+		SELECT COUNT(1) FROM TREE_BOARD
+		<include refid="boardWhere"></include>
+	</select>
+	
+	<select id="selectBoardList" parameterType="board" resultType="board">
+<!-- 		SELECT R.* -->
+<!-- 		FROM( -->
+		SELECT
+<!-- 				CEIL(SEQ / #{rows}) AS PAGE, -->
+				SEQ,
+				TITLE,
+				CONTENTS,
+				REG_SEQ,
+				REG_DT,
+				MOD_SEQ,
+				MOD_DT,
+				DEL_FL
+			FROM TREE_BOARD
+			<include refid="boardWhere"></include>
+<!-- 			) R -->
+<!-- 		WHERE PAGE = #{page} -->
+		ORDER BY SEQ DESC	
+	</select>
+	
+	<select id="selectBoard" parameterType="board" resultType="board">
+		SELECT
+			SEQ,
+			TITLE,
+			CONTENTS,
+			URL,
+			REG_SEQ,
+			REG_DT,
+			MOD_SEQ,
+			MOD_DT,
+			DEL_FL
+		FROM TREE_BOARD 
+		WHERE  SEQ = #{seq}
+	</select>
+	
+	<select id="selectBoardFile" parameterType="board" resultType="file">
+		SELECT
+			SEQ,
+			BOARD_SEQ,
+			ORIGINAL_FILE_NM,
+			STORED_FILE_NM,
+			FILE_PATH,
+			FILE_SIZE,
+			REG_SEQ,
+			REG_DT,
+			DEL_FL
+		FROM TREE_FILE
+		WHERE DEL_FL != 'Y'
+		AND BOARD_SEQ = #{board_seq}		
+	</select>
+	
+	<insert id="insertBoard" parameterType="board">
+		INSERT INTO TREE_BOARD 
+		<selectKey keyProperty="seq" order="BEFORE" resultType="int">
+			SELECT COALESCE(MAX(SEQ), 0) + 1 FROM TREE_BOARD
+		</selectKey>
+		(
+			SEQ,
+			TITLE,
+			CONTENTS,
+			URL,
+			REG_SEQ,
+			REG_DT
+		) VALUES (
+			#{seq},
+			#{title},
+			#{contents},
+			#{url},
+			#{reg_seq},
+			NOW()
+		)
+	</insert>
+	
+	<insert id="insertBoardFile" parameterType="file">
+		INSERT INTO TREE_FILE
+		<selectKey keyProperty="seq" resultType="int" order="BEFORE">
+			SELECT COALESCE(MAX(SEQ), 0) + 1 FROM TREE_FILE
+		</selectKey>
+		(
+			SEQ,
+			BOARD_SEQ,
+			ORIGINAL_FILE_NM,
+			STORED_FILE_NM,
+			FILE_PATH,
+			FILE_SIZE,
+			REG_SEQ,
+			REG_DT
+		) VALUES (
+			#{seq},
+			#{board_seq},
+			#{original_file_nm},
+			#{stored_file_nm},
+			#{file_path},
+			#{file_size},
+			#{reg_seq},
+			NOW()
+		)
+	</insert>
+
+	<update id="updateBoard" parameterType="board">
+		UPDATE TREE_BOARD SET
+			TITLE = #{title},
+			CONTENTS = #{contents},
+			MOD_SEQ = #{mod_seq},
+			MOD_DT = NOW()
+		WHERE SEQ = #{seq}
+	</update>
+	
+	<update id="deleteBoard" parameterType="board">
+		UPDATE TREE_BOARD SET
+			DEL_FL = 'Y',
+			MOD_SEQ = #{mod_seq},
+			MOD_DT = NOW()
+		WHERE SEQ = #{seq}	
+	</update>
+	
+		
+	
+</mapper>
